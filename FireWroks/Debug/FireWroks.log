@@ -1,0 +1,4 @@
+﻿  FireWroks.cpp
+D:\GitRepo\FireWroks\FireWroks\FireWroks.h(209,73): warning C4244: 'argument': conversion from 'double' to 'FLOAT', possible loss of data
+D:\GitRepo\FireWroks\FireWroks\FireWroks.h(209,69): warning C4244: 'argument': conversion from 'double' to 'FLOAT', possible loss of data
+  FireWroks.vcxproj -> D:\GitRepo\FireWroks\Debug\FireWroks.exe
