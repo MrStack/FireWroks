@@ -10,8 +10,11 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include <random>
+#include <numeric>
+#include <tuple>
 
-#define PI 3.1415926535
+#define PI 3.1415926535f
 
 template <typename T>
 void SafeRelease(T** ppT)
@@ -177,7 +180,30 @@ public:
         InvalidateRect(hWnd, NULL, FALSE);
     }
 
+    std::vector<float> RandomRadius(std::tuple<float, float> range, size_t count)
+    {
+        std::vector<float> radius_container{};
 
+        dist.param(std::uniform_real_distribution<float>{ std::get<0>(range), std::get<1>(range) });
+        rand_engine.seed(rand_device());
+        dist(rand_engine);
+
+        for (size_t i{}; i < count; i++)
+        {
+            radius_container.push_back(dist(rand_engine));
+        }
+    }
+
+    std::vector<D2D1_ELLIPSE> CreateParticles(D2D1_POINT_2F& center, size_t particle_count)
+    {
+        auto radius_container = RandomRadius(std::make_tuple(3.0f, 8.0f), particle_count);
+        std::vector<D2D1_ELLIPSE> ellipsese_container{};        
+
+        for (size_t i{}; i < particle_count; i++)
+        {            
+            ellipsese_container.push_back(D2D1::Ellipse(center, radius_container[i],radius_container[i]));
+        }
+    }
 
     void DrawParticles(void)
     {
@@ -190,9 +216,9 @@ public:
         std::vector<D2D1_ELLIPSE> ellipses_container(particle_count, ellipse);
         std::vector<D2D1::Matrix3x2F> trans_container{};
 
-        double cx = 0;// (rc.left + rc.right) / 2;
-        double cy = 0;// (rc.left + rc.right) / 2;
-        static double bloom_radius = 10;
+        float cx = 0;// (rc.left + rc.right) / 2;
+        float cy = 0;// (rc.left + rc.right) / 2;
+        static float bloom_radius = 10;
         if (bloom_radius >= float((rc.left + rc.right) / 2) - radius)
         {
             bloom_radius = 10;
@@ -201,11 +227,11 @@ public:
 
         for (size_t i{}; i < particle_count; i++)
         {
-            auto angle = 360 / particle_count * i;
-            auto radians = angle * PI / 180;
+            float angle = 360 / float(particle_count) * i;
+            float radians = angle * PI / 180;
 
-            auto vx = cx + cos(radians) * bloom_radius;
-            auto vy = cy + sin(radians) * bloom_radius;
+            float vx = cx + cos(radians) * bloom_radius;
+            float vy = cy + sin(radians) * bloom_radius;
             trans_container.push_back(D2D1::Matrix3x2F::Translation(vx, vy));
         }
 
@@ -222,8 +248,8 @@ public:
             for (size_t i{};i<particle_count;i++)
             {
                 pRT->SetTransform(trans_container[i]);
-                pRT->FillEllipse(ellipse, pFaceBrush);
-                pRT->DrawEllipse(ellipse, pEdgeBrush);
+                pRT->FillEllipse(ellipses_container[i], pFaceBrush);
+                pRT->DrawEllipse(ellipses_container[i], pEdgeBrush);
             }
             pRT->EndDraw();
 
@@ -302,6 +328,10 @@ private:
     ID2D1SolidColorBrush* pEdgeBrush;
     ID2D1SolidColorBrush* pFaceBrush;
     RECT rc;
+
+    std::uniform_real_distribution<float> dist;
+    std::random_device rand_device;
+    std::mt19937 rand_engine;
 };
 
 class FireWorks

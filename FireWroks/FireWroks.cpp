@@ -96,10 +96,10 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 }
 
 
-void WINAPI OnTimerEvent(UINT wTimerID, UINT msg, DWORD dwUser, DWORD dwl, DWORD dw2)
+void WINAPI OnTimerEvent(UINT uTimerID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2)
 {
     auto start = std::chrono::high_resolution_clock::now();
-    SendMessage(ghWnd, WM_PAINT, 0, 0);
+    SendMessage(ghWnd, WM_TIMER, 0, 0);
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end - start;
     std::string result{ "Time elapsed:" };
@@ -201,9 +201,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
         break;
     case WM_TIMER:
         {
-            
-            //spFire->change_radius();
-            //spFire->bloom(windowX / 2, windowY / 2);
+            spDrawer->DrawParticles();
         }
         break;
     case WM_PAINT:
