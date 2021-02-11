@@ -129,7 +129,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    MoveWindow(hWnd, mousePoint.x - windowX / 2, mousePoint.y - windowY / 2, windowX, windowY, TRUE);
 
    ghWnd = hWnd;
-   auto mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, LowLevelMouseProc, GetModuleHandleW(0) , 0);
+   //auto mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, LowLevelMouseProc, GetModuleHandleW(0) , 0);
    auto hot_key = GlobalAddAtom(L"Exit");
    RegisterHotKey(hWnd, hot_key, MOD_ALT, 0x51);
 

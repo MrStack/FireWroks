@@ -29,9 +29,14 @@ void SafeRelease(T** ppT)
 class Drawer
 {
 public:
-    Drawer(HWND hwnd) :pD2DFactory{}, hr{}, hWnd{ hwnd }, pRT{}, pEdgeBrush{}, rc{}
+    Drawer(HWND hwnd) :pD2DFactory{}, hr{}, hWnd{ hwnd }, pRT{}, pEdgeBrush{}, rc{}, bloom_radius{ 10 }, radius_container{}, new_round{ true }, rand_nums{}, particle_count{ 50 }
 	{		
 		hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2DFactory);
+                
+        for (size_t i{}; i < particle_count; i++)
+        {
+            rand_nums.push_back(RandomFloat(std::make_tuple(0.0f, 1.0f)));
+        }
 
         //GetClientRect(hWnd, &rc);
 
@@ -180,60 +185,86 @@ public:
         InvalidateRect(hWnd, NULL, FALSE);
     }
 
-    std::vector<float> RandomRadius(std::tuple<float, float> range, size_t count)
+    float RandomFloat(const std::tuple<float, float> range)
+    {
+        dist.param(std::uniform_real_distribution<>::param_type{ std::get<0>(range), std::get<1>(range) });
+        rand_engine.seed(rand_device());
+
+        return float(dist(rand_engine));
+    }
+
+    std::vector<float> RandomRadius(const std::tuple<float, float> range, const size_t count)
     {
         std::vector<float> radius_container{};
 
-        dist.param(std::uniform_real_distribution<float>{ std::get<0>(range), std::get<1>(range) });
+        dist.param(std::uniform_real_distribution<>::param_type{ std::get<0>(range), std::get<1>(range) });
         rand_engine.seed(rand_device());
-        dist(rand_engine);
 
         for (size_t i{}; i < count; i++)
         {
-            radius_container.push_back(dist(rand_engine));
+            radius_container.push_back(float(dist(rand_engine)));
         }
+
+        return radius_container;
     }
 
-    std::vector<D2D1_ELLIPSE> CreateParticles(D2D1_POINT_2F& center, size_t particle_count)
-    {
-        auto radius_container = RandomRadius(std::make_tuple(3.0f, 8.0f), particle_count);
+    std::vector<D2D1_ELLIPSE> CreateParticles(const D2D1_POINT_2F& center, const std::vector<float> radius_container, const size_t particle_count)
+    {        
         std::vector<D2D1_ELLIPSE> ellipsese_container{};        
 
         for (size_t i{}; i < particle_count; i++)
         {            
             ellipsese_container.push_back(D2D1::Ellipse(center, radius_container[i],radius_container[i]));
         }
+
+        return ellipsese_container;
+    }
+
+    std::vector<D2D1::Matrix3x2F> ProduceTranslations(size_t particle_count)
+    {
+        std::vector<D2D1::Matrix3x2F> trans_container{};
+
+        float disturb_x{};
+        float disturb_y{};
+        if (bloom_radius >= float((rc.left + rc.right) / 2) - 8.0f)
+        {
+            bloom_radius = 10;
+            for (size_t i{}; i < particle_count; i++)
+            {
+                rand_nums[i] = RandomFloat(std::make_tuple(0.0f, 1.0f));
+            }
+            new_round = true;
+        }
+        bloom_radius+=3;
+
+        for (size_t i{}; i < particle_count; i++)
+        {
+            //float angle = 360 / float(particle_count) * i;
+            float angle = 360 * rand_nums[i];
+            float radians = angle * PI / 180;
+
+            float vx = 0 + cos(radians) * bloom_radius;
+            float vy = 0 + sin(radians) * bloom_radius;
+            trans_container.push_back(D2D1::Matrix3x2F::Translation(vx, vy));
+        }
+
+        return trans_container;
     }
 
     void DrawParticles(void)
     {
         GetClientRect(hWnd, &rc);
 
-        const float radius = 5;
-        const size_t particle_count = 10;
         const D2D1_POINT_2F center = D2D1::Point2(float((rc.left+rc.right)/2), float((rc.top+rc.bottom)/2));
-        const D2D1_ELLIPSE ellipse = D2D1::Ellipse(center, radius, radius);
-        std::vector<D2D1_ELLIPSE> ellipses_container(particle_count, ellipse);
-        std::vector<D2D1::Matrix3x2F> trans_container{};
-
-        float cx = 0;// (rc.left + rc.right) / 2;
-        float cy = 0;// (rc.left + rc.right) / 2;
-        static float bloom_radius = 10;
-        if (bloom_radius >= float((rc.left + rc.right) / 2) - radius)
+                
+        if (new_round == true)
         {
-            bloom_radius = 10;
-        }
-        bloom_radius++;
+            radius_container = RandomRadius(std::make_tuple(3.0f, 8.0f), particle_count);            
+            new_round = false;
+        }        
 
-        for (size_t i{}; i < particle_count; i++)
-        {
-            float angle = 360 / float(particle_count) * i;
-            float radians = angle * PI / 180;
-
-            float vx = cx + cos(radians) * bloom_radius;
-            float vy = cy + sin(radians) * bloom_radius;
-            trans_container.push_back(D2D1::Matrix3x2F::Translation(vx, vy));
-        }
+        std::vector<D2D1_ELLIPSE> ellipses_container = CreateParticles(center, radius_container, particle_count);
+        std::vector<D2D1::Matrix3x2F> trans_container = ProduceTranslations(particle_count);
 
         HRESULT hr;
 
@@ -329,9 +360,15 @@ private:
     ID2D1SolidColorBrush* pFaceBrush;
     RECT rc;
 
-    std::uniform_real_distribution<float> dist;
+    std::uniform_real_distribution<double> dist;
     std::random_device rand_device;
     std::mt19937 rand_engine;
+
+    volatile float bloom_radius;
+    std::vector<float> radius_container;
+    bool new_round;
+    std::vector<float> rand_nums;
+    size_t particle_count;
 };
 
 class FireWorks
