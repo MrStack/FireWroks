@@ -29,14 +29,16 @@ void SafeRelease(T** ppT)
 class Drawer
 {
 public:
-    Drawer(HWND hwnd) :pD2DFactory{}, hr{}, hWnd{ hwnd }, pRT{}, pEdgeBrush{}, rc{}, bloom_radius{ 10 }, radius_container{}, new_round{ true }, rand_nums{}, particle_count{ 50 }
+    Drawer(HWND hwnd) :pD2DFactory{}, hr{}, hWnd{ hwnd }, pRT{}, pEdgeBrush{}, rc{}, bloom_radius{ 10 }, radius_container{}, new_round{ true }, rand_nums{}, particle_count{ 100 }, particles_speed{}
 	{		
 		hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2DFactory);
                 
         for (size_t i{}; i < particle_count; i++)
         {
             rand_nums.push_back(RandomFloat(std::make_tuple(0.0f, 1.0f)));
+            particles_speed.push_back(RandomFloat(std::make_tuple(0.0f, 3.0f)));
         }
+        bloom_radius = std::vector<float>(particle_count, 10);
 
         //GetClientRect(hWnd, &rc);
 
@@ -226,16 +228,17 @@ public:
 
         float disturb_x{};
         float disturb_y{};
-        if (bloom_radius >= float((rc.left + rc.right) / 2) - 8.0f)
+        auto p = std::min_element(std::begin(bloom_radius), std::end(bloom_radius));
+        if (*p >= float((rc.left + rc.right) / 2) - 8.0f)
         {
-            bloom_radius = 10;
+            bloom_radius = std::vector<float>(particle_count, 10);
             for (size_t i{}; i < particle_count; i++)
             {
                 rand_nums[i] = RandomFloat(std::make_tuple(0.0f, 1.0f));
+                particles_speed[i] = RandomFloat(std::make_tuple(0.0f, 3.0f));
             }
             new_round = true;
         }
-        bloom_radius+=3;
 
         for (size_t i{}; i < particle_count; i++)
         {
@@ -243,8 +246,9 @@ public:
             float angle = 360 * rand_nums[i];
             float radians = angle * PI / 180;
 
-            float vx = 0 + cos(radians) * bloom_radius;
-            float vy = 0 + sin(radians) * bloom_radius;
+            bloom_radius[i] += 1 + particles_speed[i];
+            float vx = 0 + cos(radians) * bloom_radius[i];
+            float vy = 0 + sin(radians) * bloom_radius[i];
             trans_container.push_back(D2D1::Matrix3x2F::Translation(vx, vy));
         }
 
@@ -259,7 +263,7 @@ public:
                 
         if (new_round == true)
         {
-            radius_container = RandomRadius(std::make_tuple(3.0f, 8.0f), particle_count);            
+            radius_container = RandomRadius(std::make_tuple(2.0f, 5.0f), particle_count);            
             new_round = false;
         }        
 
@@ -364,11 +368,12 @@ private:
     std::random_device rand_device;
     std::mt19937 rand_engine;
 
-    volatile float bloom_radius;
+    std::vector<float> bloom_radius;
     std::vector<float> radius_container;
     bool new_round;
     std::vector<float> rand_nums;
     size_t particle_count;
+    std::vector<float> particles_speed;
 };
 
 class FireWorks

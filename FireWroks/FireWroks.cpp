@@ -120,7 +120,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    hInst = hInstance; // Store instance handle in our global variable
 
-   HWND hWnd = CreateWindowEx(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TRANSPARENT, szWindowClass, szTitle, WS_POPUP,
+   HWND hWnd = CreateWindowEx(WS_EX_LAYERED | WS_EX_TOPMOST | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW, szWindowClass, szTitle, WS_POPUP,
        CW_USEDEFAULT, CW_USEDEFAULT, windowX, windowY, NULL, NULL, hInstance, NULL);
    SetLayeredWindowAttributes(hWnd, RGB(0,0,0), (255 * 0) / 100, LWA_COLORKEY);
 
@@ -129,7 +129,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    MoveWindow(hWnd, mousePoint.x - windowX / 2, mousePoint.y - windowY / 2, windowX, windowY, TRUE);
 
    ghWnd = hWnd;
-   //auto mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, LowLevelMouseProc, GetModuleHandleW(0) , 0);
+   auto mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, LowLevelMouseProc, GetModuleHandleW(0) , 0);
    auto hot_key = GlobalAddAtom(L"Exit");
    RegisterHotKey(hWnd, hot_key, MOD_ALT, 0x51);
 
