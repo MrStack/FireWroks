@@ -15,8 +15,8 @@
 HINSTANCE hInst;                                // current instance
 WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
 WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
-const int windowX{ 500 };
-const int windowY{ 500 };
+const int windowX{ 600 };
+const int windowY{ 600 };
 HWND ghWnd{};
 std::shared_ptr<Drawer> spDrawer{};
 std::shared_ptr<FireWorks> spFire{};
@@ -129,7 +129,7 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
    MoveWindow(hWnd, mousePoint.x - windowX / 2, mousePoint.y - windowY / 2, windowX, windowY, TRUE);
 
    ghWnd = hWnd;
-   auto mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, LowLevelMouseProc, GetModuleHandleW(0) , 0);
+   //auto mouse_hook = SetWindowsHookExW(WH_MOUSE_LL, LowLevelMouseProc, GetModuleHandleW(0) , 0);
    auto hot_key = GlobalAddAtom(L"Exit");
    RegisterHotKey(hWnd, hot_key, MOD_ALT, 0x51);
 

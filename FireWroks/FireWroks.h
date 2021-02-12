@@ -29,16 +29,19 @@ void SafeRelease(T** ppT)
 class Drawer
 {
 public:
-    Drawer(HWND hwnd) :pD2DFactory{}, hr{}, hWnd{ hwnd }, pRT{}, pEdgeBrush{}, rc{}, bloom_radius{ 10 }, radius_container{}, new_round{ true }, rand_nums{}, particle_count{ 100 }, particles_speed{}
+    Drawer(HWND hwnd) :pD2DFactory{}, hr{}, hWnd{ hwnd }, pRT{}, pEdgeBrush{}, rc{}, bloom_radius{}, 
+        radius_container{}, new_round{ true }, rand_nums{}, particle_count{ 100 }, particles_speed{},
+        speed_range{ std::make_tuple(0.0f,5.0f) }, random_float_range{ std::make_tuple(0.0f,1.0f) },
+        radius_range{ std::make_tuple(2.0f,5.0f) }
 	{		
 		hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &pD2DFactory);
                 
         for (size_t i{}; i < particle_count; i++)
         {
-            rand_nums.push_back(RandomFloat(std::make_tuple(0.0f, 1.0f)));
-            particles_speed.push_back(RandomFloat(std::make_tuple(0.0f, 3.0f)));
+            rand_nums.push_back(RandomFloat(random_float_range));
+            particles_speed.push_back(RandomFloat(speed_range));
         }
-        bloom_radius = std::vector<float>(particle_count, 10);
+        bloom_radius = std::vector<float>(particle_count, 1);
 
         //GetClientRect(hWnd, &rc);
 
@@ -187,7 +190,7 @@ public:
         InvalidateRect(hWnd, NULL, FALSE);
     }
 
-    float RandomFloat(const std::tuple<float, float> range)
+    float RandomFloat(const std::tuple<float, float>& range)
     {
         dist.param(std::uniform_real_distribution<>::param_type{ std::get<0>(range), std::get<1>(range) });
         rand_engine.seed(rand_device());
@@ -195,7 +198,7 @@ public:
         return float(dist(rand_engine));
     }
 
-    std::vector<float> RandomRadius(const std::tuple<float, float> range, const size_t count)
+    std::vector<float> RandomRadius(const std::tuple<float, float>& range, const size_t count)
     {
         std::vector<float> radius_container{};
 
@@ -226,23 +229,20 @@ public:
     {
         std::vector<D2D1::Matrix3x2F> trans_container{};
 
-        float disturb_x{};
-        float disturb_y{};
-        auto p = std::min_element(std::begin(bloom_radius), std::end(bloom_radius));
-        if (*p >= float((rc.left + rc.right) / 2) - 8.0f)
+        auto p = std::max_element(std::begin(bloom_radius), std::end(bloom_radius));
+        if (*p >= float((rc.left + rc.right) / 2)*2.0f/4.0f)
         {
-            bloom_radius = std::vector<float>(particle_count, 10);
+            bloom_radius = std::vector<float>(particle_count, 1);
             for (size_t i{}; i < particle_count; i++)
             {
-                rand_nums[i] = RandomFloat(std::make_tuple(0.0f, 1.0f));
-                particles_speed[i] = RandomFloat(std::make_tuple(0.0f, 3.0f));
+                rand_nums[i] = RandomFloat(random_float_range);
+                particles_speed[i] = RandomFloat(speed_range);
             }
             new_round = true;
         }
 
         for (size_t i{}; i < particle_count; i++)
         {
-            //float angle = 360 / float(particle_count) * i;
             float angle = 360 * rand_nums[i];
             float radians = angle * PI / 180;
 
@@ -250,6 +250,7 @@ public:
             float vx = 0 + cos(radians) * bloom_radius[i];
             float vy = 0 + sin(radians) * bloom_radius[i];
             trans_container.push_back(D2D1::Matrix3x2F::Translation(vx, vy));
+            bloom_radius[i] *= 1 - 0.75f*particles_speed[i]/100;
         }
 
         return trans_container;
@@ -263,7 +264,7 @@ public:
                 
         if (new_round == true)
         {
-            radius_container = RandomRadius(std::make_tuple(2.0f, 5.0f), particle_count);            
+            radius_container = RandomRadius(radius_range, particle_count);
             new_round = false;
         }        
 
@@ -374,6 +375,9 @@ private:
     std::vector<float> rand_nums;
     size_t particle_count;
     std::vector<float> particles_speed;
+    std::tuple<float, float> speed_range;
+    std::tuple<float, float> random_float_range;
+    std::tuple<float, float> radius_range;
 };
 
 class FireWorks
